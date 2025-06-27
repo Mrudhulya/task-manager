@@ -1,0 +1,140 @@
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>📝 Task Manager</title>
+    <meta charset="UTF-8">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(to right, #f8f9fa, #e3f2fd);
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body class="bg-light">
+
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-center mb-0">📝 Task Manager</h2>
+        <!-- Add below header -->
+        <div th:with="hour=${T(java.lang.Integer).parseInt(#dates.format(#dates.createNow(), 'HH'))}">
+            <h5>
+                Good
+                <span th:text="${hour lt 12 ? 'Morning' : (hour lt 17 ? 'Afternoon' : 'Evening')}"></span>,
+                <span th:text="${#authentication.name}">User</span> 👋
+            </h5>
+        </div>
+
+        <div class="d-flex align-items-center">
+            <span class="me-3 text-muted">👤 <span th:text="${#authentication.name}">Username</span></span>
+
+            <!-- 🌙 Dark Mode Toggle -->
+            <div class="form-check form-switch me-3">
+                <input class="form-check-input" type="checkbox" id="darkModeToggle" title="Toggle Dark Mode">
+            </div>
+
+            <a href="/logout" class="btn btn-outline-danger btn-sm"><i class="bi bi-box-arrow-right"></i> Logout</a>
+        </div>
+    </div>
+
+    <div class="text-center mb-4">
+        <a href="/" class="btn btn-outline-primary btn-sm me-2">All</a>
+        <a href="/filter/completed" class="btn btn-outline-success btn-sm me-2">Completed</a>
+        <a href="/filter/pending" class="btn btn-outline-warning btn-sm">Pending</a>
+    </div>
+
+    <form action="/search" method="get" class="mb-4">
+        <div class="row g-2">
+            <div class="col-9">
+                <input type="text" name="category" class="form-control" placeholder="🔍 Search by category...">
+            </div>
+            <div class="col-3 d-grid">
+                <button class="btn btn-secondary">Search</button>
+            </div>
+        </div>
+    </form>
+
+
+    <div class="alert alert-info text-center">
+        Completed Tasks: <strong th:text="${completedCount}">0</strong>
+    </div>
+
+    <form th:action="@{/add}" method="post" th:object="${task}" class="card card-body shadow-sm mb-4">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <input type="text" th:field="*{description}" class="form-control" placeholder="Enter Task Description" required>
+            </div>
+            <div class="col-md-2">
+                <select th:field="*{category}" class="form-select" required>
+                    <option value="" disabled selected>Select Category</option>
+                    <option value="Work">Work</option>
+                    <option value="Personal">Personal</option>
+                    <option value="Urgent">Urgent</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <input type="date" th:field="*{dueDate}" class="form-control">
+            </div>
+            <div class="col-md-2">
+                <select th:field="*{priority}" class="form-select" required>
+                    <option value="" disabled selected>Select Priority</option>
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-grid">
+                <button class="btn btn-primary">➕ Add Task</button>
+            </div>
+        </div>
+    </form>
+
+    <ul class="list-group fade-in">
+        <li class="list-group-item d-flex justify-content-between align-items-start mb-2" th:each="t : ${tasks}">
+            <div>
+                <h6 class="mb-1" th:text="${t.description}">Task Title</h6>
+                <span class="badge bg-secondary me-1" th:text="${t.dueDate}">Due Date</span>
+                <span class="badge me-1"
+                      th:classappend="${t.category} == 'Work' ? 'bg-info' :
+                                     (t.category == 'Personal' ? 'bg-success' : 'bg-danger')"
+                      th:text="${t.category}">Category</span>
+                <span class="badge me-1"
+                      th:classappend="${t.priority} == 'High' ? 'bg-danger' :
+                                     (t.priority == 'Medium' ? 'bg-success' : 'bg-warning text-dark')"
+                      th:text="${t.priority}">Priority</span>
+                <span th:text="${t.completed ? '✅ Completed' : '❌ Pending'}"></span>
+            </div>
+            <div>
+                <a th:href="@{/edit/{id}(id=${t.id})}" class="btn btn-warning btn-sm me-1"><i class="bi bi-pencil"></i></a>
+                <a th:href="@{/complete/{id}(id=${t.id})}" class="btn btn-success btn-sm me-1" th:if="${!t.completed}"><i class="bi bi-check2-circle"></i></a>
+                <a th:href="@{/delete/{id}(id=${t.id})}" class="btn btn-danger btn-sm"><i class="bi bi-trash"></i></a>
+            </div>
+        </li>
+    </ul>
+</div>
+
+<script>
+    const toggle = document.getElementById('darkModeToggle');
+    toggle.addEventListener('change', () => {
+      document.body.classList.toggle('bg-dark');
+      document.body.classList.toggle('text-white');
+      document.querySelectorAll('.card, .list-group-item, .form-control, .form-select').forEach(el => {
+        el.classList.toggle('bg-dark');
+        el.classList.toggle('text-white');
+      });
+    });
+</script>
+
+<script>
+    document.getElementById('taskFilter').addEventListener('keyup', function () {
+      const filter = this.value.toLowerCase();
+      document.querySelectorAll('ul.list-group > li').forEach(item => {
+        item.style.display = item.textContent.toLowerCase().includes(filter) ? 'flex' : 'none';
+      });
+    });
+</script>
+
+</body>
+</html>
